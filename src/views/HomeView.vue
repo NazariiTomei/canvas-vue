@@ -7,22 +7,32 @@
         <div v-else class="grid-container">
           <div v-for="(card, index) in cards" :key="card.id"
             :class="{ 'grid-item': true, 'display-none': index === 4 }">
-            <ItemCard v-if="index !== 4" :id="card.id" :imageSrc="card.image" :handleOpen="handleOpen"
-              :handleEdit="handleEdit" />
+            <template v-if="index !== 4">
+              <div class="card" @click="handleOpen(card.id)">
+                <div class="card-media">
+                  <img :src="card.image === '' ? '/sample.jpeg' : card.image" alt="Image" />
+                </div>
+                <div v-if="card.image !== ''" class="image-list-item-bar">
+                  <button class="icon-button" @click.stop="handleEdit(card.image)">
+                    ℹ️
+                  </button>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </template>
       <Modal :visible="openDialog" @update:visible="openDialog = $event">
-          <Box :style="modalStyle">
-            <Button @click="handleClose" style="float: right;" variant="contained" color="success">Close</Button>
-            <h1 style="color: black;">Select Image</h1>
-            <div class="item">
-              <div>
-                <ImageUpload :uploadedFileName="this.uploadedFileName" :handleClose :imageUploaded />
-              </div>
+        <div :style="modalStyle">
+          <button @click="handleClose" style="float: right;" variant="contained" color="success">Close</button>
+          <h1 style="color: black;">Select Image</h1>
+          <div class="item">
+            <div>
+              <ImageUpload :uploadedFileName="uploadedFileName" :handleClose :imageUploaded />
             </div>
-          </Box>
-        </Modal>
+          </div>
+        </div>
+      </Modal>
     </div>
   </div>
 </template>
@@ -30,7 +40,6 @@
 <script setup>
 import { ref, computed } from 'vue';
 import Spinner from '@/components/layout/Spinner.vue';
-import ItemCard from '@/components/layout/ItemCard.vue';
 import ImgEditor from '@/components/layout/ImgEditor.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ImageUpload from '@/components/ui/ImageUpload.vue';
@@ -76,6 +85,7 @@ const imageUploaded = (filePath) => {
       item.image = filePath.url;
     }
   });
+  console.log(cards);
   handleClose();
 };
 
@@ -107,4 +117,31 @@ const modalStyle = computed(() => ({
       padding: 15px
     .grid-item 
       display: inline-block
-</style>
+      .card
+        max-width: 100%
+        max-height: 240px
+        height: 240px
+        overflow: hidden
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5)
+        position: relative
+        cursor: pointer
+        border-radius: 10px
+      
+        .card-media img 
+          width: 100%
+          height: 240px
+      
+        .image-list-item-bar 
+          position: absolute
+          bottom: 0
+          right: 0
+          background: rgba(0, 0, 0, 0.3)
+          padding: 4px
+
+          .icon-button 
+            background: none
+            border: none
+            color: rgba(255, 255, 255, 0.54)
+            cursor: pointer
+            font-size: 24px
+    </style>
