@@ -8,17 +8,19 @@
         <div v-if="editing">
           <div class="image-cropper">
             <h1>Image Cropper</h1>
-            <div class="cropper-container">
+            <div class="cropper-container" style="display: flex;">
               <div v-if="cropperImage">
-                <img ref="image" id="cropper-image" style="max-width: 800px; max-height: 600px; height: 600px" :src="cropperImage" alt="Source Image" />
-                // add rotate icon
-                //add color filter icon
+                <img ref="image" id="cropper-image" style="max-width: 800px; max-height: 600px; height: 600px"
+                  :src="cropperImage" alt="Source Image" />
+              </div>
+              <div class="controls">
+                <button @click="rotateImage(90)">Rotate 90°</button>
+                <button @click="applyColorFilter('grayscale(100%)')">Grayscale</button>
+                <button @click="saveCroppedImage">Save</button>
+                <button @click="setEditing(false)">Cancel</button>
               </div>
             </div>
-            <div class="controls">
-              <button @click="saveCroppedImage">Save</button>
-              <button @click="setEditing(false)">Cancel</button>
-            </div>
+
           </div>
         </div>
         <div v-else class="grid-container">
@@ -35,11 +37,12 @@
               </div>
             </template>
           </div>
-          <div>
-            <button @click="onRefresh">Refresh</button>
-            <button>Preview</button>
-          </div>
+
         </div>
+      </div>
+      <div v-if="!editing" class="controls-dash">
+          <a @click="onRefresh" class="refresh">Refresh</a>
+          <a class="preview">Preview</a>
       </div>
       <div v-if="openDialog" @click.self="closeModal" class="modal">
         <div :style="modalStyle">
@@ -218,6 +221,18 @@ const saveToLocalStorage = () => {
   localStorage.setItem('recentImages', JSON.stringify(recentImages.value));
 };
 
+const rotateImage = (degrees) => {
+  if (cropper.value) {
+    cropper.value.rotate(degrees);
+  }
+};
+
+const applyColorFilter = (filter) => {
+  if (cropper.value) {
+    cropper.value.style.filter = filter;
+  }
+};
+
 onMounted(() => {
   if (localStorage.getItem('cards')) {
     cards.value = JSON.parse(localStorage.getItem('cards'));
@@ -256,6 +271,24 @@ const modalStyle = computed(() => ({
   flex-direction: column
   .canvas
     border-radius: 10px
+    .controls-dash
+      display: flex
+      background-color: #c4ae96
+      justify-content: center
+      align-items: center
+      padding: 0
+      .refresh
+        color: green
+        border: none
+        text-align: center
+        text-decoration: none
+        font-size: 16px
+      .preview
+        color: red
+        border: none
+        text-align: center
+        text-decoration: none
+        font-size: 16px
     .grid-container
       display: grid
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr))
@@ -324,8 +357,6 @@ const modalStyle = computed(() => ({
         max-height: 200px
       .cropper-container
         margin-bottom: 20px
-      .controls 
-        display: flex
-        justify-content: space-between
-        flex-wrap: wrap
+        .controls 
+          display: block
 </style>
