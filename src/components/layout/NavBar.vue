@@ -44,7 +44,9 @@ watch(isChecked, (value) => {
 </script>
 <template>
   <header>
-    <div>Logo</div>
+    <div>
+      <img src="/logo.png" width="40px">
+    </div>
     <!-- <nav>
       <router-link to="/">Home</router-link>
       <router-link to="/about">About</router-link>
@@ -67,7 +69,7 @@ header
     width: 100%
     padding-block: 1rem
     padding-inline: 1rem
-
+  
     display: flex
     justify-content: space-between
     align-items: center
