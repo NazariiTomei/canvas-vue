@@ -1,58 +1,93 @@
 <template>
   <div class="home">
     <div class="canvas">
-      <Spinner v-if="loading" />
-      <template v-else>
-        <ImgEditor v-if="editing" :ImgSrc="'/saplme.jpeg'" :setEditing="setEditing" />
+      <div v-if="loading" class="spinner-overlay">
+        <div class="spinner"></div>
+      </div>
+      <div v-else>
+        <div v-if="editing">
+          <div class="image-cropper">
+            <h1>Image Cropper</h1>
+            <div class="cropper-container">
+              <div v-if="cropperImage">
+                <img ref="image" id="cropper-image" style="max-width: 800px; max-height: 600px; height: 600px" :src="cropperImage" alt="Source Image" />
+                // add rotate icon
+                //add color filter icon
+              </div>
+            </div>
+            <div class="controls">
+              <button @click="saveCroppedImage">Save</button>
+              <button @click="setEditing(false)">Cancel</button>
+            </div>
+          </div>
+        </div>
         <div v-else class="grid-container">
           <div v-for="(card, index) in cards" :key="card.id"
             :class="{ 'grid-item': true, 'display-none': index === 4 }">
-            <template v-if="index !== 4">
+            <template class="ItemCard" v-if="index !== 4">
               <div class="card" @click="handleOpen(card.id)">
                 <div class="card-media">
                   <img :src="card.image === '' ? '/sample.jpeg' : card.image" alt="Image" />
                 </div>
                 <div v-if="card.image !== ''" class="image-list-item-bar">
-                  <button class="icon-button" @click.stop="handleEdit(card.image)">
-                    ℹ️
-                  </button>
+                  <button class="icon-button" @click.stop="handleEdit(card.image)">ℹ️</button>
                 </div>
               </div>
             </template>
           </div>
+          <div>
+            <button @click="onRefresh">Refresh</button>
+            <button>Preview</button>
+          </div>
         </div>
-      </template>
-      <Modal :visible="openDialog" @update:visible="openDialog = $event">
+      </div>
+      <div v-if="openDialog" @click.self="closeModal" class="modal">
         <div :style="modalStyle">
-          <button @click="handleClose" style="float: right;" variant="contained" color="success">Close</button>
+          <button @click="handleClose" style="float: right;">Close</button>
           <h1 style="color: black;">Select Image</h1>
-          <div class="item">
-            <div>
-              <ImageUpload :uploadedFileName="uploadedFileName" :handleClose :imageUploaded />
+          <div class="upload-file">
+            <input type="file" @change="onFileChange" accept="image/*" />
+            <button class="btn-blue" @click="uploadImage" :disabled="!selectedFile">Upload</button>
+            <div v-if="imageUrl">
+              <img :src="imageUrl" alt="Image Preview" style="width: 240px; border-radius: 20px; height: 200px;" />
+            </div>
+            <div v-if="recentImages.length">
+              <h2 style="color: black;">Or Choose from your recent images</h2>
+              <div class="recent-grid-container" style="max-height: 280px; overflow-y: scroll;">
+                <div v-for="(recentimage, index) in recentImages" :key="index" :class="{ 'grid-item': true }">
+                  <img @click="imageUploaded(recentimage)" :src="recentimage" alt="Image Preview"
+                    style="width: 240px; height: 210px; padding: 10px; border-radius: 20px;" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </Modal>
+      </div>
     </div>
   </div>
 </template>
 
+
 <script setup>
-import { ref, computed } from 'vue';
-import Spinner from '@/components/layout/Spinner.vue';
-import ImgEditor from '@/components/layout/ImgEditor.vue';
-import Modal from '@/components/ui/Modal.vue';
-import ImageUpload from '@/components/ui/ImageUpload.vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import axios from 'axios';
+import Cropper from 'cropperjs';
+import 'cropperjs/dist/cropper.css';
 
 const selectedFile = ref(null);
 const openDialog = ref(false);
 const selectId = ref(0);
 const uploadStatus = ref('');
+const recentImages = ref(JSON.parse(localStorage.getItem('recentImages')) || []);
 const uploadedFileName = ref({});
+const imageUrl = ref('');
+const cropperImage = ref(null);
 const loading = ref(false);
 const editing = ref(false);
 const editImage = ref('');
-const cards = ref([
+const cropper = ref(null);
+const croppedImage = ref(null);
+const cards = ref(JSON.parse(localStorage.getItem('cards')) || [
   { image: "", id: 0 },
   { image: "", id: 1 },
   { image: "", id: 2 },
@@ -71,7 +106,20 @@ const handleOpen = (id) => {
 
 const handleEdit = (image) => {
   editImage.value = image;
+  cropperImage.value = image;
   editing.value = true;
+  nextTick(() => {
+    const imageElement = document.getElementById('cropper-image');
+    if (imageElement) {
+      if (cropper.value) {
+        cropper.value.destroy();
+      }
+      cropper.value = new Cropper(imageElement, {
+        aspectRatio: 0,
+        viewMode: 0
+      });
+    }
+  });
 };
 
 const handleClose = () => {
@@ -82,26 +130,125 @@ const imageUploaded = (filePath) => {
   uploadStatus.value = 'Upload successful';
   cards.value.forEach((item) => {
     if (item.id === selectId.value) {
-      item.image = filePath.url;
+      item.image = filePath;
     }
   });
-  console.log(cards);
+  loading.value = false;
   handleClose();
+  saveToLocalStorage();
 };
+
+const onFileChange = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    selectedFile.value = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imageUrl.value = e.target.result;
+      cropperImage.value = e.target.result;
+      nextTick(() => {
+        if (cropper.value) {
+          cropper.value.destroy();
+        }
+        cropper.value = new Cropper(document.getElementById('image'), {
+          aspectRatio: 0,
+          viewMode: 0,
+        });
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+
+const saveCroppedImage = () => {
+  if (cropper.value) {
+    const canvas = cropper.value.getCroppedCanvas();
+    croppedImage.value = canvas.toDataURL('image/png');
+  }
+  if (croppedImage.value) {
+    imageUploaded(croppedImage.value);
+    setEditing(false);
+  }
+};
+
+const setEditing = (state) => {
+  editing.value = state;
+};
+
+const onRefresh = () => {
+  localStorage.removeItem('cards');
+  cards.value = [
+    { image: "", id: 0 },
+    { image: "", id: 1 },
+    { image: "", id: 2 },
+    { image: "", id: 3 },
+    { image: "", id: 4 },
+    { image: "", id: 5 },
+    { image: "", id: 6 },
+    { image: "", id: 7 },
+    { image: "", id: 8 },
+  ];
+};
+
+const uploadImage = async () => {
+  if (!selectedFile.value) return;
+  loading.value = true;
+  const formData = new FormData();
+  formData.append('file', selectedFile.value);
+
+  try {
+    const response = await axios.post('http://195.14.123.132:5000/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    const data = await response.data;
+    uploadedFileName.url = data.filePath;
+    recentImages.value.push(data.filePath);
+    imageUploaded(uploadedFileName.url);
+  } catch (error) {
+    loading.value = false;
+    console.error('Error uploading image:', error);
+  }
+};
+
+const saveToLocalStorage = () => {
+  localStorage.setItem('cards', JSON.stringify(cards.value));
+  localStorage.setItem('recentImages', JSON.stringify(recentImages.value));
+};
+
+onMounted(() => {
+  if (localStorage.getItem('cards')) {
+    cards.value = JSON.parse(localStorage.getItem('cards'));
+  }
+  if (localStorage.getItem('recentImages')) {
+    recentImages.value = JSON.parse(localStorage.getItem('recentImages'));
+  }
+});
+
+onUnmounted(() => {
+  if (cropper.value) {
+    cropper.value.destroy();
+  }
+});
+
+watch([cards, recentImages], saveToLocalStorage, { deep: true });
 
 const modalStyle = computed(() => ({
   position: 'absolute',
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
-  width: '840px',
-  height: '800px',
+  width: '70%',
+  height: '80%',
   backgroundColor: 'white',
   border: '2px solid #000',
   boxShadow: 20,
   padding: '20px',
 }));
 </script>
+
 
 <style lang="sass" scoped>
 .home
@@ -144,4 +291,41 @@ const modalStyle = computed(() => ({
             color: rgba(255, 255, 255, 0.54)
             cursor: pointer
             font-size: 24px
-    </style>
+    .spinner-overlay
+      position: fixed
+      top: 0
+      left: 0
+      width: 100%
+      height: 100%
+      background: rgba(255, 255, 255, 0.8)
+      display: flex
+      justify-content: center
+      align-items: center
+      z-index: 9999
+          
+      .spinner
+        border: 16px solid #f3f3f3
+        border-top: 16px solid #3498db
+        border-radius: 50%
+        width: 120px
+        height: 120px
+        animation: spin 2s linear infinite
+      
+      @keyframes spin
+        0%
+          transform: rotate(0deg)
+        100%
+          transform: rotate(360deg)
+
+    .image-cropper 
+      max-width: 800px
+      #cropper-image
+        max-width: 600px
+        max-height: 200px
+      .cropper-container
+        margin-bottom: 20px
+      .controls 
+        display: flex
+        justify-content: space-between
+        flex-wrap: wrap
+</style>

@@ -12,10 +12,13 @@
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
+    "@pqina/pintura": "^8.82.8",
+    "@pqina/vue-pintura": "^9.0.1",
     "@vue/cli": "^5.0.8",
     "axios": "^1.7.2",
     "bootstrap": "^5.3.3",
     "bootstrap-vue": "^2.23.1",
+    "cropperjs": "^1.6.2",
     "normalize.css": "^8.0.1",
     "vue": "^3.4.21",
     "vue-advanced-cropper": "^2.8.9",

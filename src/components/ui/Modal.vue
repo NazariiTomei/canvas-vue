@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="fas fa-times" @click.self="close">
+  <div v-if="visible" @click.self="close">
     <div class="modal">
       <slot></slot>
     </div>
