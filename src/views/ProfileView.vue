@@ -1,104 +1,109 @@
-<template>
-  <div id="app">
-    <cropper ref="cropper" class="cropper" :src="image.src" />
-    <div class="button-wrapper">
-      <button class="button" @click="$refs.file.click()">
-        <input
-          type="file"
-          ref="file"
-          @change="uploadImage($event)"
-          accept="image/*"
-        />
-        Upload image
-      </button>
-      <button class="button" @click="cropImage">Crop image</button>
-    </div>
-  </div>
-</template>
-
 <script>
 import { Cropper } from "vue-advanced-cropper";
 import "vue-advanced-cropper/dist/style.css";
+import Navigation from "./OtherView.vue";
 
 export default {
-  name: "App",
+  components: {
+    Cropper,
+    Navigation,
+  },
   data() {
     return {
-      image: {
-        src: "/sample.jpeg",
-        type: "image/jpg",
-      },
+      zoom: 0,
+      img: ("/image.jpg"),
     };
   },
   methods: {
-    cropImage() {
-      const result = this.$refs.cropper.getResult();
-      const newTab = window.open();
-      newTab.document.body.innerHTML = `<img src="${result.canvas.toDataURL(
-        this.image.type
-      )}"></img>`;
+    defaultSize({ imageSize }) {
+      return {
+        width: Math.min(imageSize.height, imageSize.width),
+        height: Math.min(imageSize.height, imageSize.width),
+      };
     },
-    uploadImage(event) {
-      /// Reference to the DOM input element
-      const { files } = event.target;
-      // Ensure that you have a file before attempting to read it
-      if (files && files[0]) {
-        // 1. Revoke the object URL, to allow the garbage collector to destroy the uploaded before file
-        if (this.image.src) {
-          URL.revokeObjectURL(this.image.src);
+    stencilSize({ boundaries }) {
+      return {
+        width: Math.min(boundaries.height, boundaries.width) - 48,
+        height: Math.min(boundaries.height, boundaries.width) - 48,
+      };
+    },
+    onChange(result) {
+      const cropper = this.$refs.cropper;
+      if (cropper) {
+        const { coordinates, imageSize } = cropper;
+        if (
+          imageSize.width / imageSize.height >
+          coordinates.width / coordinates.height
+        ) {
+          // Determine the position of slider bullet
+          // It's 0 if the stencil has the maximum size and it's 1 if the has the minimum size
+          this.zoom =
+            (cropper.imageSize.height - cropper.coordinates.height) /
+            (cropper.imageSize.height - cropper.sizeRestrictions.minHeight);
+        } else {
+          this.zoom =
+            (cropper.imageSize.width - cropper.coordinates.width) /
+            (cropper.imageSize.width - cropper.sizeRestrictions.minWidth);
         }
-        // 2. Create the blob link to the file to optimize performance:
-        const blob = URL.createObjectURL(files[0]);
-
-        // 3. Update the image. The type will be derived from the extension and it can lead to an incorrect result:
-        this.image = {
-          src: blob,
-          type: files[0].type,
-        };
       }
     },
-  },
-  destroyed() {
-    // Revoke the object URL, to allow the garbage collector to destroy the uploaded before file
-    if (this.image.src) {
-      URL.revokeObjectURL(this.image.src);
-    }
-  },
-  components: {
-    Cropper,
+    onZoom(value) {
+      const cropper = this.$refs.cropper;
+      if (cropper) {
+        if (cropper.imageSize.height < cropper.imageSize.width) {
+          const minHeight = cropper.sizeRestrictions.minHeight;
+          const imageHeight = cropper.imageSize.height;
+          // Determine the current absolute zoom and the new absolute zoom
+          // to calculate the sought relative zoom value
+          cropper.zoom(
+            (imageHeight - this.zoom * (imageHeight - minHeight)) /
+            (imageHeight - value * (imageHeight - minHeight))
+          );
+        } else {
+          const minWidth = cropper.sizeRestrictions.minWidth;
+          const imageWidth = cropper.imageSize.width;
+          cropper.zoom(
+            (imageWidth - this.zoom * (imageWidth - minWidth)) /
+            (imageWidth - value * (imageWidth - minWidth))
+          );
+        }
+      }
+    },
   },
 };
 </script>
 
+
+<template>
+  <div>
+    <cropper ref="cropperRef" class="cropper" background-class="twitter-cropper__background"
+      foreground-class="twitter-cropper__foreground" image-restriction="stencil" :stencil-size="stencilSize"
+      :stencil-props="{
+        lines: {},
+        handlers: {},
+        movable: false,
+        scalable: false,
+        aspectRatio: 1,
+        previewClass: 'twitter-cropper__stencil',
+      }" :transitions="false" :canvas="false" :debounce="false" :default-size="defaultSize" :min-width="150"
+      :min-height="150" :src="img" @change="onChange" />
+    <navigation :zoom="zoom" @change="onZoom" />
+  </div>
+</template>
+
 <style lang="scss">
 .cropper {
-  min-height: 300px;
-  width: 100%;
-}
 
-.button-wrapper {
-  display: flex;
-  justify-content: center;
-  margin-top: 17px;
-}
+  &__background {
+    background-color: #edf2f4;
+  }
 
-.button {
-  color: white;
-  font-size: 16px;
-  padding: 10px 20px;
-  width: 100%;
-  background: #151515;
-  cursor: pointer;
-  transition: background 0.5s;
-  border: none;
-  &:not(:last-of-type) {
-    margin-right: 10px;
+  &__foreground {
+    background-color: #edf2f4;
   }
-  &:hover {
-    background: #2F2F2F;
-  }
-  input {
-    display: none;
+
+  &__stencil {
+    border: solid 5px rgb(29, 161, 242);
   }
 }
 </style>

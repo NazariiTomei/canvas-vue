@@ -27,13 +27,11 @@
                   </select>
                 </div>
               </div>
-              <div v-if="cropperImage" class="cropimage">
-                <img ref="image" id="cropper-image" :src="cropperImage" alt="cropper-image" />
-              </div>
+              <cropper ref="cropperRef" :transitions="true" class="cropper" :src="editImage"
+                image-restriction="fill-area" default-boundaries="fill" />
+              <canvas ref="editor" class="editor"></canvas>
+
               <div class="controls">
-                <div>
-                  <img src="/rotate.png" style="width: 50px;" @click="rotateImage(90)" />
-                </div>
                 <div>
                   <button class="done" @click="saveCroppedImage">Done</button>
                   <button class="cancel" @click="setEditing(false)">Cancel</button>
@@ -99,8 +97,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import axios from 'axios';
-import Cropper from 'cropperjs';
-import 'cropperjs/dist/cropper.css';
+import { Cropper } from "vue-advanced-cropper";
+import "vue-advanced-cropper/dist/style.css";
 
 const selectedFile = ref(null);
 const openDialog = ref(false);
@@ -108,13 +106,12 @@ const selectId = ref(0);
 const uploadStatus = ref('');
 const recentImages = ref(JSON.parse(localStorage.getItem('recentImages')) || []);
 const uploadedFileName = ref({});
+const focus = ref(false);
+const zoom = ref(0);
 const imageUrl = ref('');
-const cropperImage = ref(null);
 const loading = ref(false);
 const editing = ref(false);
 const editImage = ref('');
-const cropper = ref(null);
-const croppedImage = ref(null);
 const colorfilter = ref('');
 const filterStyles = {
   '': '',
@@ -128,16 +125,82 @@ const filterStyles = {
   'saturate(200%)': 'saturate(200%)',
 };
 const cards = ref(JSON.parse(localStorage.getItem('cards')) || [
-  { image: "", id: 0 },
-  { image: "", id: 1 },
-  { image: "", id: 2 },
-  { image: "", id: 3 },
-  { image: "", id: 4 },
-  { image: "", id: 5 },
-  { image: "", id: 6 },
-  { image: "", id: 7 },
-  { image: "", id: 8 },
+  {
+    image: "", id: 0, coordinates: {
+      width: null,
+      height: null,
+      left: null,
+      top: null
+    }, zoom: 0.5
+  },
+  {
+    image: "", id: 1, coordinates: {
+      width: null,
+      height: null,
+      left: null,
+      top: null
+    }, zoom: 0.5
+  },
+  {
+    image: "", id: 2, coordinates: {
+      width: null,
+      height: null,
+      left: null,
+      top: null
+    }, zoom: 0.5
+  },
+  {
+    image: "", id: 3, coordinates: {
+      width: null,
+      height: null,
+      left: null,
+      top: null
+    }, zoom: 0.5
+  },
+  {
+    image: "", id: 4, coordinates: {
+      width: null,
+      height: null,
+      left: null,
+      top: null
+    }, zoom: 0.5
+  },
+  {
+    image: "", id: 5, coordinates: {
+      width: null,
+      height: null,
+      left: null,
+      top: null
+    }, zoom: 0.5
+  },
+  {
+    image: "", id: 6, coordinates: {
+      width: null,
+      height: null,
+      left: null,
+      top: null
+    }, zoom: 0.5
+  },
+  {
+    image: "", id: 7, coordinates: {
+      width: null,
+      height: null,
+      left: null,
+      top: null
+    }, zoom: 0.5
+  },
+  {
+    image: "", id: 8, coordinates: {
+      width: null,
+      height: null,
+      left: null,
+      top: null
+    }, zoom: 0.5
+  },
 ]);
+
+// Ref for cropper component
+const cropperRef = ref(null);
 
 const handleOpen = (id) => {
   selectId.value = id;
@@ -146,20 +209,7 @@ const handleOpen = (id) => {
 
 const handleEdit = (image) => {
   editImage.value = image;
-  cropperImage.value = image;
   editing.value = true;
-  nextTick(() => {
-    const imageElement = document.getElementById('cropper-image');
-    if (imageElement) {
-      if (cropper.value) {
-        cropper.value.destroy();
-      }
-      cropper.value = new Cropper(imageElement, {
-        aspectRatio: 0,
-        viewMode: 0
-      });
-    }
-  });
 };
 
 const handleClose = () => {
@@ -168,6 +218,7 @@ const handleClose = () => {
 
 const imageUploaded = (filePath) => {
   uploadStatus.value = 'Upload successful';
+  selectedFile.value = filePath;
   cards.value.forEach((item) => {
     if (item.id === selectId.value) {
       item.image = filePath;
@@ -182,32 +233,23 @@ const onFileChange = (event) => {
   const file = event.target.files[0];
   if (file) {
     selectedFile.value = file;
+    console.log(file);
     const reader = new FileReader();
     reader.onload = (e) => {
       imageUrl.value = e.target.result;
-      cropperImage.value = e.target.result;
-      nextTick(() => {
-        if (cropper.value) {
-          cropper.value.destroy();
-        }
-        cropper.value = new Cropper(document.getElementById('image'), {
-          aspectRatio: 0,
-          viewMode: 0,
-        });
-      });
     };
     reader.readAsDataURL(file);
   }
 };
 
-
 const saveCroppedImage = () => {
-  if (cropper.value) {
-    const canvas = cropper.value.getCroppedCanvas();
-    croppedImage.value = canvas.toDataURL('image/png');
-  }
-  if (croppedImage.value) {
-    imageUploaded(croppedImage.value);
+
+  const result = cropperRef.value.getResult();
+  const ImgUrl = result.canvas.toDataURL('image/png');
+  console.log('Cropped image data URL:', dataURL);
+  // imageUploaded(dataURL);
+  if (ImgUrl.value) {
+    imageUploaded(ImgUrl.value);
     setEditing(false);
   }
 };
@@ -259,17 +301,77 @@ const saveToLocalStorage = () => {
 };
 
 const rotateImage = (degrees) => {
-  if (cropper.value) {
-    cropper.value.rotate(degrees);
+  if (cropperRef.value && cropperRef.value.rotate) {
+    cropperRef.value.rotate(degrees); // Adjust this line based on actual Cropper API
+  } else {
+    console.error('Cropper instance or rotate method not found');
   }
 };
 
 const applyColorFilter = () => {
-  if (cropper.value && cropper.value.canvas && filterStyles[colorfilter.value]) {
-    cropper.value.canvas.style.filter = filterStyles[colorfilter.value];
+  if (!editImage.value) return; // Ensure editImage is set
+
+  const image = new Image();
+  image.src = editImage.value;
+  image.crossOrigin = "anonymous";
+  image.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext("2d");
+
+    // Apply selected color filter
+    if (colorfilter.value && filterStyles[colorfilter.value]) {
+      context.filter = colorfilter.value;
+    }
+
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Clear the canvas and draw the filtered image
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.putImageData(imageData, 0, 0);
+
+    // Set the edited image as the source for the cropper (if cropperRef is available)
+    if (cropperRef.value) {
+      cropperRef.value.imageAttributes.src = canvas.toDataURL();
+    }
+  };
+};
+
+const onZoom = (value) => {
+  if (cropperRef.value) {
+    const cropperInstance = cropperRef.value.cropper; // Access the cropper instance
+    if (cropperInstance) {
+      cropperInstance.zoom(value);
+    }
   }
 };
 
+const onDrag = (e) => {
+  if (focus.value) {
+    const position = e.touches ? e.touches[0].clientX : e.clientX;
+    const lineElement = document.getElementById('line'); // Ensure 'line' ID exists in your template
+    if (lineElement) {
+      const { left, width } = lineElement.getBoundingClientRect();
+      const newValue = Math.min(1, Math.max(0, (position - left) / width));
+      zoom.value = newValue; // Update zoom reactive state
+      onZoom(newValue); // Update cropper zoom
+    }
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+  }
+};
+
+const onStart = (e) => {
+  focus.value = true;
+  onDrag(e);
+};
+
+const onStop = () => {
+  focus.value = false;
+};
 
 onMounted(() => {
   if (localStorage.getItem('cards')) {
@@ -278,12 +380,20 @@ onMounted(() => {
   if (localStorage.getItem('recentImages')) {
     recentImages.value = JSON.parse(localStorage.getItem('recentImages'));
   }
+  window.addEventListener("mouseup", onStop, { passive: false });
+  window.addEventListener("mousemove", onDrag, { passive: false });
+  window.addEventListener("touchmove", onDrag, { passive: false });
+  window.addEventListener("touchend", onStop, { passive: false });
 });
 
 onUnmounted(() => {
-  if (cropper.value) {
-    cropper.value.destroy();
+  if (cropperRef.value) {
+    cropperRef.value.destroy();
   }
+  window.removeEventListener("mouseup", onStop);
+  window.removeEventListener("mousemove", onDrag);
+  window.removeEventListener("touchmove", onDrag);
+  window.removeEventListener("touchend", onStop);
 });
 
 watch([cards, recentImages], saveToLocalStorage, { deep: true });
@@ -302,6 +412,7 @@ const modalStyle = computed(() => ({
   padding: '20px',
 }));
 </script>
+
 
 
 <style lang="sass" scoped>
@@ -496,6 +607,98 @@ const modalStyle = computed(() => ({
         max-width: 800px
         .cropper-container
           max-width: 100%
+          .actions
+            .twitter-navigation
+              display: flex
+              width: 100%
+              align-items: center
+              justify-content: center
+              height: 50px
+              
+              &__wrapper
+                display: flex
+                align-items: center
+                max-width: 400px
+                width: 100%
+              
+              &__zoom-icon
+                height: 18.75px
+                width: 18.75px
+                fill: rgb(101, 119, 134)
+                flex-shrink: 0
+                
+                &--left
+                  margin-right: 10px
+                
+                &--right
+                  margin-left: 10px
+              
+              &__line-wrapper
+                width: 100%
+                height: 20px
+                display: flex
+                align-items: center
+                flex-direction: column
+                justify-content: center
+                border-radius: 5px
+                cursor: pointer
+                
+              &__line
+                background: rgb(142, 208, 249)
+                height: 5px
+                width: 100%
+                border-radius: 5px
+                display: flex
+                position: relative
+                align-items: center
+                
+              &__fill
+                background: rgb(29, 161, 242)
+                align-self: stretch
+                flex-basis: auto
+                flex-direction: column
+                flex-shrink: 0
+                
+              &__circle
+                width: 30px
+                height: 30px
+                margin-left: -15px
+                border-radius: 50%
+                display: flex
+                align-items: center
+                justify-content: center
+                position: absolute
+                transition-duration: 0.2s
+                transition-property: background-color, box-shadow
+                background-color: transparent
+                
+                &:hover
+                  background-color: rgba(29, 161, 242, 0.1)
+                
+                &--focus
+                  background-color: rgba(29, 161, 242, 0.2)
+              
+              &__inner-circle
+                width: 15px
+                height: 15px
+                border-radius: 50%
+                background-color: rgb(29, 161, 242)
+                transform: scale(1)
+                transition-duration: 0.1s
+                transition-property: transform
+                box-shadow: rgba(101, 119, 134, 0.2) 0px 0px 7px, rgba(101, 119, 134, 0.15) 0px 1px 3px 1px
+                
+                &--focus
+                  transform: scale(1.2)
+          .cropper 
+            border: solid 1px #EEE
+            max-width: 800px
+            width: 800px
+            height: 500px
+            min-height: 300px
+            width: 100%
+            .editor
+              display: none
           .cropimage
             max-width: 100%
             #cropper-image
