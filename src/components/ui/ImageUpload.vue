@@ -1,100 +1,65 @@
 <template>
-  <div class="upload-file">
-    <input type="file" @change="onFileChange" accept="image/*">
-    <button class="btn-blue" @click="uploadImage" :disabled="!selectedFile">Upload</button>
-    <div v-if="imageUrl">
-      <img :src="imageUrl" alt="Image Preview" style="width: 200px;" />
-    </div>
-    <h2 style="color: black;">Or Choose from your recent images</h2>
-    <template v-if="recentImages">
-      <div class="grid-container">
-        <div v-for="(image, index) in recentImages" :key="index" :class="{ 'grid-item': true }">
-          <img :src="image.url" alt="Image Preview" style="width: 200px;" />
-        </div>
-      </div>
-    </template>
+  <div class="button-wrapper">
+    <span class="button" @click="$refs.file.click()">
+      <input type="file" ref="file" @change="uploadImage($event)" accept="image/*">
+      <slot>Upload image</slot>
+    </span>
   </div>
 </template>
-
 <script>
-import axios from 'axios';
-import { ref, toRefs } from 'vue';
-
 export default {
-  name: 'ImageUpload',
+  name: "ImageUploadButton",
   props: {
-    uploadedFileName: {
-      type: Object,
-    },
-    imageUploaded: {
-      type: Function,
+    value: {
+      type: String
     }
   },
-  setup(props) {
-    const { uploadedFileName } = toRefs(props);
-    const { imageUploaded } = toRefs(props);
-    const selectedFile = ref(null);
-    const imageUrl = ref('');
-    const recentImages = ref([]);
-
-    const onFileChange = (event) => {
-      const file = event.target.files[0];
-      if (file) {
-        selectedFile.value = file;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          imageUrl.value = e.target.result;
-
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-
-    const uploadImage = async () => {
-      if (!selectedFile.value) return;
-
-      const formData = new FormData();
-      formData.append('file', selectedFile.value);
-
-      try {
-        const response = await axios.post('http://localhost:5000/upload',
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          });
-        const data = await response.data;
-        uploadedFileName.url = data.filePath;
-        props.imageUploaded(uploadedFileName);
-      } catch (error) {
-        console.error('Error uploading image:', error);
-      }
-    };
-
+  data() {
     return {
-      selectedFile,
-      imageUrl,
-      onFileChange,
-      uploadImage,
+      image: null
     };
   },
+  methods: {
+    uploadImage(event) {
+      // Reference to the DOM input element
+      var input = event.target;
+      // Ensure that you have a file before attempting to read it
+      if (input.files && input.files[0]) {
+        // create a new FileReader to read this image and convert to base64 format
+        var reader = new FileReader();
+        // Define a callback function to run, when FileReader finishes its job
+        reader.onload = e => {
+          // Note: arrow function used here, so that "this.imageData" refers to the imageData of Vue component
+          // Read image as base64 and set to imageData
+          this.image = e.target.result;
+          this.$emit("input", this.image);
+        };
+        // Start the reader job - read file as a data url (base64 format)
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+  }
 };
 </script>
-
-<style>
-img {
-  max-width: 100%;
-  height: auto;
+<style scoped>
+.button-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
 }
 
-.grid-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  padding: 10px;
+.button {
+  color: #3fb37f;
+  font-size: 16px;
+  cursor: pointer;
 }
 
-.grid-item {
-  display: inline-block;
+.button:hover {
+  font-weight: bold;
+}
+
+.button input {
+  display: none;
 }
 </style>
+

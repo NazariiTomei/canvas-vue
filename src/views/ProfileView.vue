@@ -1,109 +1,125 @@
-<script>
-import { Cropper } from "vue-advanced-cropper";
-import "vue-advanced-cropper/dist/style.css";
-import Navigation from "./OtherView.vue";
-
-export default {
-  components: {
-    Cropper,
-    Navigation,
-  },
-  data() {
-    return {
-      zoom: 0,
-      img: ("/image.jpg"),
-    };
-  },
-  methods: {
-    defaultSize({ imageSize }) {
-      return {
-        width: Math.min(imageSize.height, imageSize.width),
-        height: Math.min(imageSize.height, imageSize.width),
-      };
-    },
-    stencilSize({ boundaries }) {
-      return {
-        width: Math.min(boundaries.height, boundaries.width) - 48,
-        height: Math.min(boundaries.height, boundaries.width) - 48,
-      };
-    },
-    onChange(result) {
-      const cropper = this.$refs.cropper;
-      if (cropper) {
-        const { coordinates, imageSize } = cropper;
-        if (
-          imageSize.width / imageSize.height >
-          coordinates.width / coordinates.height
-        ) {
-          // Determine the position of slider bullet
-          // It's 0 if the stencil has the maximum size and it's 1 if the has the minimum size
-          this.zoom =
-            (cropper.imageSize.height - cropper.coordinates.height) /
-            (cropper.imageSize.height - cropper.sizeRestrictions.minHeight);
-        } else {
-          this.zoom =
-            (cropper.imageSize.width - cropper.coordinates.width) /
-            (cropper.imageSize.width - cropper.sizeRestrictions.minWidth);
-        }
-      }
-    },
-    onZoom(value) {
-      const cropper = this.$refs.cropper;
-      if (cropper) {
-        if (cropper.imageSize.height < cropper.imageSize.width) {
-          const minHeight = cropper.sizeRestrictions.minHeight;
-          const imageHeight = cropper.imageSize.height;
-          // Determine the current absolute zoom and the new absolute zoom
-          // to calculate the sought relative zoom value
-          cropper.zoom(
-            (imageHeight - this.zoom * (imageHeight - minHeight)) /
-            (imageHeight - value * (imageHeight - minHeight))
-          );
-        } else {
-          const minWidth = cropper.sizeRestrictions.minWidth;
-          const imageWidth = cropper.imageSize.width;
-          cropper.zoom(
-            (imageWidth - this.zoom * (imageWidth - minWidth)) /
-            (imageWidth - value * (imageWidth - minWidth))
-          );
-        }
-      }
-    },
-  },
-};
-</script>
-
-
 <template>
-  <div>
-    <cropper ref="cropperRef" class="cropper" background-class="twitter-cropper__background"
-      foreground-class="twitter-cropper__foreground" image-restriction="stencil" :stencil-size="stencilSize"
-      :stencil-props="{
-        lines: {},
-        handlers: {},
-        movable: false,
-        scalable: false,
-        aspectRatio: 1,
-        previewClass: 'twitter-cropper__stencil',
-      }" :transitions="false" :canvas="false" :debounce="false" :default-size="defaultSize" :min-width="150"
-      :min-height="150" :src="img" @change="onChange" />
-    <navigation :zoom="zoom" @change="onZoom" />
-  </div>
+    <div id="app">
+        <ImageUploadButton v-model="image" />
+        <button v-if="image" @click="openModal">Edit</button>
+        <Modal v-show="showModal" @close="closeModal">
+            <div slot="body" class="cropper-wrapper">
+                <Cropper ref="cropper" class="cropper" :src="image" :defaultSize="cropperSize"
+                    :defaultPosition="cropperPosition" />
+            </div>
+            <div slot="actions" class="actions">
+                <button @click="crop">Crop</button>
+            </div>
+        </Modal>
+        <!-- <pre>{{ image }}</pre> -->
+        <img class="crop-preview" v-if="croppedImage" :src="croppedImage">
+    </div>
 </template>
 
-<style lang="scss">
+<script>
+import ImageUploadButton from "@/components/ui/ImageUpload.vue";
+import Modal from "@/components/ui/Modal.vue";
+import { Cropper } from "vue-advanced-cropper";
+
+export default {
+    name: "App",
+    data() {
+        return {
+            image: null,
+            croppedImage: null,
+            coordinates: {
+                width: null,
+                height: null,
+                left: null,
+                top: null
+            },
+            showModal: false,
+            zoom: 0.5
+        };
+    },
+    watch: {
+        image(src) {
+            if (src) this.openModal();
+        }
+    },
+    methods: {
+        openModal() {
+            this.showModal = true;
+        },
+        closeModal() {
+            this.showModal = false;
+        },
+        crop() {
+            const { coordinates, canvas } = this.$refs.cropper.getResult();
+            this.coordinates = coordinates;
+            // You able to do different manipulations at a canvas
+            // but there we just get a cropped image
+            this.croppedImage = canvas.toDataURL();
+            this.closeModal();
+        },
+        cropperSize(cropper, image, props) {
+            const { width, height } = this.coordinates;
+
+            if (width !== null && height !== null) {
+                return { width, height };
+            }
+            // TODO: move this code to function defaultSize function
+            const maxWidth = (props.maxWidth / 100) * image.naturalWidth;
+            const maxHeight = (props.maxHeight / 100) * image.naturalHeight;
+            const minWidth = (props.minWidth / 100) * image.naturalWidth;
+            const minHeight = (props.minHeight / 100) * image.naturalHeight;
+
+            let newHeight, newWidth;
+            if (maxHeight > maxWidth) {
+                newHeight = Math.max(minHeight, maxHeight * 0.8);
+                newWidth = Math.max(minWidth, maxWidth * 0.8);
+            } else {
+                newWidth = Math.max(minWidth, maxWidth * 0.8);
+                newHeight = Math.max(minHeight, maxHeight * 0.8);
+            }
+
+            return {
+                height: newHeight,
+                width: newWidth
+            };
+        },
+        cropperPosition(cropper, image, width, height, props) {
+            const { left, top } = this.coordinates;
+
+            if (left !== null && top !== null) {
+                return { left, top };
+            }
+            // TODO: move this code below to defaultPosition function
+            return {
+                left: image.naturalWidth / 2 - width / 2,
+                top: image.naturalHeight / 2 - height / 2
+            };
+        }
+    },
+    components: {
+        ImageUploadButton,
+        Modal,
+        Cropper
+    }
+};
+</script>
+<style>
+#app {
+    font-family: "Avenir", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: center;
+    color: #2c3e50;
+    margin-top: 60px;
+}
+
 .cropper {
+    height: 300px;
+    width: 100%;
+}
 
-  &__background {
-    background-color: #edf2f4;
-  }
-
-  &__foreground {
-    background-color: #edf2f4;
-  }
-
-  &__stencil {
-    border: solid 5px rgb(29, 161, 242);
-  }
+/* Trash code */
+.crop-preview {
+    height: 200px;
 }
 </style>
