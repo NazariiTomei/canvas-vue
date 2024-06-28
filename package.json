@@ -11,6 +11,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^6.5.2",
     "@mdi/font": "^7.4.47",
     "@pqina/pintura": "^8.82.8",
     "@pqina/vue-pintura": "^9.0.1",

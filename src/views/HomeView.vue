@@ -4,57 +4,50 @@
       <div class="spinner"></div>
     </div>
     <div class="canvas">
-      <div>
-        <div v-if="editing" class="editing">
-          <div class="image-cropper">
-            <div class="cropper-container">
-              <div>
-                <cropper ref="cropperRef" class="cropper" :src="editImage" :defaultPosition="cropperPosition"
-                  :style="{ filter: colorfilter, width: '60%', height: '500px', }" />
-              </div>
-              <div class="actions">
-                <div class="rotate-action">
-                  <img src="/rotate.png" style="width: 50px;" @click="rotateImage(90)" />
-                </div>
-                <div class="colorfilter-action">
-                  <label style="font-size: 24px; color: white;">Color Filter</label>
-                  <select class="colorFilterComboBox" v-model="colorfilter">
-                    <option value="">Original</option>
-                    <option value="grayscale(100%)">Grayscale</option>
-                    <option value="sepia(100%)">Sepia</option>
-                    <option value="blur(5px)">Blur</option>
-                    <option value="brightness(150%)">Brightness</option>
-                    <option value="contrast(200%)">Contrast</option>
-                    <option value="hue-rotate(90deg)">Hue Rotate</option>
-                    <option value="invert(100%)">Invert</option>
-                    <option value="saturate(200%)">Saturate</option>
-                  </select>
-                </div>
-                <div class="controls">
-                  <div>
-                    <button class="done" @click="saveCroppedImage">Done</button>
-                    <button class="cancel" @click="setEditing(false)">Cancel</button>
-                  </div>
-                </div>
+      <div v-if="editing" class="editing">
+        <div class="image-cropper">
+          <button @click="rotateImage(90)" class="rotate-btn">
+            <i class="far fa-rotate-right"></i>
+          </button>
+          <div class="colorfilter-action">
+            <label style="font-size: 24px; color: white;">Color Filter</label>
+            <i class="far fa-tint fa-lg"></i>
+            <select class="colorFilterComboBox" v-model="colorfilter">
+              <option value="">Original</option>
+              <option value="grayscale(100%)">Grayscale</option>
+              <option value="sepia(100%)">Sepia</option>
+              <option value="blur(5px)">Blur</option>
+              <option value="brightness(150%)">Brightness</option>
+              <option value="contrast(200%)">Contrast</option>
+              <option value="hue-rotate(90deg)">Hue Rotate</option>
+              <option value="invert(100%)">Invert</option>
+              <option value="saturate(200%)">Saturate</option>
+            </select>
+          </div>
+          <cropper ref="cropperRef" class="cropper" :src="editImage" :defaultPosition="cropperPosition"
+            :style="{ filter: colorfilter}" />
+        </div>
+        <div class="cropper-container">
+          <div class="controls">
+            <button class="done" @click="saveCroppedImage">Done</button>
+            <button class="cancel" @click="setEditing(false)">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div v-else class="card-board">
+        <div v-for="(card, index) in cards" :key="card.id"
+          :style="{ position: 'absolute', top: card.coordinate.y / 21 + '%', left: card.coordinate.x / 30 + '%', width: card.coordinate.w / 30 + '%', height: card.coordinate.h / 21 + '%' }">
+          <div v-if="card.id !== 4" @click="handleOpen(card.id)">
+            <div class="card">
+              <img class="card-img" :src="card.croppedImage === null ? '/sample.jpeg' : card.croppedImage"
+                alt="Card image" width="100%" />
+              <div v-if="card.image !== ''">
+                <button class="custom-button" @click.stop="handleEdit(card)"><i class="fas fa-edit"></i></button>
               </div>
             </div>
           </div>
-        </div>
-        <div v-else class="card-board">
-          <div v-for="(card, index) in cards" :key="card.id"
-            :style="{ position: 'absolute', top: card.coordinate.y / 21 + '%', left: card.coordinate.x / 30 + '%', width: card.coordinate.w / 30 + '%', height: card.coordinate.h / 21 + '%' }">
-            <div v-if="card.id !== 4" @click="handleOpen(card.id)">
-              <div class="card">
-                <img class="card-img" :src="card.croppedImage === null ? '/sample.jpeg' : card.croppedImage"
-                  alt="Card image" width="100%" />
-                <div v-if="card.image !== ''">
-                  <button class="icon-button" @click.stop="handleEdit(card)">ℹ️</button>
-                </div>
-              </div>
-            </div>
-            <div v-else>
-              <img :src="card.croppedImage === null ? '/love1.png' : card.croppedImage" alt="love png" width="100%" />
-            </div>
+          <div v-else>
+            <img :src="card.croppedImage === null ? '/love1.png' : card.croppedImage" alt="love png" width="100%" />
           </div>
         </div>
       </div>
@@ -62,13 +55,13 @@
         <a @click="onRefresh" class="refresh">Refresh</a>
         <a class="preview">Preview</a>
       </div>
-      <div v-if="openDialog" @click.self="closeModal" class="modal">
+      <div v-if="openDialog" @click.self="closeModal" class="custom-modal">
         <div class="modal-content">
           <img src="/close-icon.png" @click="handleClose" class="close-icon" />
           <h1 class="select-file-content">Select Image</h1>
           <div class="upload-file">
             <input type="file" @change="onFileChange" accept="image/*" />
-            <button class="btn-blue" @click="uploadImage" :disabled="!selectedFile">Upload</button>
+            <button class="btn btn-success" @click="uploadImage" :disabled="!selectedFile">Upload</button>
             <div v-if="imageUrl">
               <img :src="imageUrl" class="preview-image" alt="Image Preview" />
             </div>
@@ -93,7 +86,8 @@ import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 import { Cropper } from "vue-advanced-cropper";
 import "vue-advanced-cropper/dist/style.css";
-
+import '@fortawesome/fontawesome-free/css/all.min.css';
+import 'bootstrap/dist/css/bootstrap.css';
 const selectedFile = ref(null);
 const openDialog = ref(false);
 const selectId = ref(0);
@@ -304,12 +298,46 @@ onMounted(() => {
   backdrop-filter: blur(8px)
   .canvas
     border-radius: 10px
-    .modal
+    .editing
+      display: flex
+      justify-content: center
+      align-items: center
+      .image-cropper
+        .cropper
+          width: 50%
+          height:500px
+      .cropper-container
+        .controls
+          .done
+            background-color: #04AA6D
+            border: none
+            color: black
+            padding: 15px 32px
+            text-align: center
+            text-decoration: none
+            display: inline-block
+            font-size: 24px
+            margin: 4px 2px
+            cursor: pointer
+            width: 150px
+          .cancel
+            background-color: white
+            border: none
+            color: black
+            padding: 15px 32px
+            text-align: center
+            text-decoration: none
+            display: inline-block
+            font-size: 24px
+            margin: 4px 2px
+            cursor: pointer
+            width: 150px
+    .custom-modal
       position: fixed
       top: 0
       left: 0
       width: 100%
-      height: 600px
+      height: 100%
       background-color: rgba(0, 0, 0, 0.5)
       display: flex
       justify-content: center
@@ -327,25 +355,49 @@ onMounted(() => {
       .card
         float: center
         overflow: hidden
-        box-shadow: 5px 8px 5px rgba(0, 0, 0, 0.7)
+        box-shadow: -4px 7px 3px rgba(0, 0, 0, 0.7)
         cursor: pointer
         position: relative
         border-radius: 10px
         height:211px  
-        .icon-button 
+        .custom-button 
           position: absolute
           bottom: 0
           right: 0
-          background: rgba(0, 0, 0, 0.7)
-          padding: 7px
-          background: none
+          background: rgba(0, 0, 0, 0.5)
+          padding: 5px
           border: none
+          border-radius:10%
           color: rgba(255, 255, 255, 0.7)
           cursor: pointer
-          font-size: 24px
+        @media (max-width: 600px)
+          .custom-button 
+            position: absolute
+            bottom: 0
+            right: 0
+            background: rgba(0, 0, 0, 0.5)
+            padding: 5px
+            border: none
+            border-radius:10%
+            color: rgba(255, 255, 255, 0.7)
+            cursor: pointer
+            font-size: 14px
+        @media (max-width: 478px)
+          .custom-button 
+            position: absolute
+            bottom: 0
+            right: 0
+            background: rgba(0, 0, 0, 0.5)
+            padding: 5px
+            border: none
+            border-radius:10%
+            color: rgba(255, 255, 255, 0.7)
+            cursor: pointer
+            font-size: 10px
         .card-img
           width: 100%
           height:100%
+          background-color:#ccc
     @media (max-width: 1200px)
       .card-board
         max-width: 900px
@@ -357,8 +409,9 @@ onMounted(() => {
         position: relative
         .card
           overflow: hidden
-          box-shadow: 5px 8px 5px rgba(0, 0, 0, 0.7)
+          box-shadow: -4px 7px 3px rgba(0, 0, 0, 0.7)
           cursor: pointer
+          border: none
           position: relative
           border-radius: 10px
           height:189.9px
@@ -372,8 +425,9 @@ onMounted(() => {
         display: inline-flex
         position: relative
         .card
+          border: none
           overflow: hidden
-          box-shadow: 5px 8px 5px rgba(0, 0, 0, 0.7)
+          box-shadow: -4px 7px 3px rgba(0, 0, 0, 0.7)
           cursor: pointer
           position: relative
           border-radius: 10px
@@ -389,7 +443,7 @@ onMounted(() => {
         position: relative
         .card
           overflow: hidden
-          box-shadow: 5px 8px 5px rgba(0, 0, 0, 0.7)
+          box-shadow: -4px 7px 3px rgba(0, 0, 0, 0.7)
           cursor: pointer
           position: relative
           border-radius: 10px
@@ -405,7 +459,7 @@ onMounted(() => {
         position: relative
         .card
           overflow: hidden
-          box-shadow: 5px 8px 5px rgba(0, 0, 0, 0.7)
+          box-shadow: -4px 7px 3px rgba(0, 0, 0, 0.7)
           cursor: pointer
           position: relative
           border-radius: 10px
@@ -421,7 +475,7 @@ onMounted(() => {
         position: relative
         .card
           overflow: hidden
-          box-shadow: 5px 8px 5px rgba(0, 0, 0, 0.7)
+          box-shadow: -4px 7px 3px rgba(0, 0, 0, 0.7)
           cursor: pointer
           position: relative
           border-radius: 10px
@@ -437,7 +491,7 @@ onMounted(() => {
         position: relative
         .card
           overflow: hidden
-          box-shadow: 5px 8px 5px rgba(0, 0, 0, 0.7)
+          box-shadow: -4px 7px 3px rgba(0, 0, 0, 0.7)
           cursor: pointer
           position: relative
           border-radius: 10px
@@ -453,7 +507,7 @@ onMounted(() => {
         position: relative
         .card
           overflow: hidden
-          box-shadow: 5px 8px 5px rgba(0, 0, 0, 0.7)
+          box-shadow: -4px 7px 3px rgba(0, 0, 0, 0.7)
           cursor: pointer
           position: relative
           border-radius: 10px
@@ -469,7 +523,7 @@ onMounted(() => {
         position: relative
         .card
           overflow: hidden
-          box-shadow: 5px 8px 5px rgba(0, 0, 0, 0.7)
+          box-shadow: -4px 7px 3px rgba(0, 0, 0, 0.7)
           cursor: pointer
           position: relative
           border-radius: 10px
@@ -485,7 +539,7 @@ onMounted(() => {
         position: relative
         .card
           overflow: hidden
-          box-shadow: 5px 8px 5px rgba(0, 0, 0, 0.7)
+          box-shadow: -4px 7px 3px rgba(0, 0, 0, 0.7)
           cursor: pointer
           position: relative
           border-radius: 10px
@@ -501,7 +555,7 @@ onMounted(() => {
         position: relative
         .card
           overflow: hidden
-          box-shadow: 5px 8px 5px rgba(0, 0, 0, 0.7)
+          box-shadow: -4px 7px 3px rgba(0, 0, 0, 0.7)
           cursor: pointer
           position: relative
           border-radius: 10px
@@ -514,7 +568,7 @@ onMounted(() => {
       box-shadow: 0 20px 15px rgba(0, 0, 0, 0.5)
       width: 800px
       max-width: 800px
-      height: 670px
+      height: 100%
       max-height: 740px
       overflow-x: hidden
       .select-file-content
@@ -548,18 +602,7 @@ onMounted(() => {
     h1 
       color: black
       font-weight: bold
-    
-    .upload-file 
-      margin-top: 20px
-    
-    .btn-blue 
-      float: center
-      background-color: #007bff
-      color: white
-      border: none
-      padding: 10px 20px
-      cursor: pointer
-      border-radius: 4px
+
     
     .preview-image 
       width: 100%
@@ -583,7 +626,7 @@ onMounted(() => {
     @media (max-width: 768px) 
       .modal-content 
         width: 100%
-        height: 670px
+        max-height: 100%
     .controls-dash
       min-width: 100%
       max-width: 100%
@@ -629,40 +672,5 @@ onMounted(() => {
         transform: rotate(0deg)
       100%
         transform: rotate(360deg)
-    .editing
-      display: flex
-      justify-content: center
-      align-items: center
-      .image-cropper 
-        max-width: 100%
-        .cropper-container
-          max-width: 800px
-          max-height: 500px
-          .actions
-            .controls 
-              display: inline-flex
-              .done
-                background-color: #04AA6D
-                border: none
-                color: black
-                padding: 15px 32px
-                text-align: center
-                text-decoration: none
-                display: inline-block
-                font-size: 24px
-                margin: 4px 2px
-                cursor: pointer
-                width: 150px
-              .cancel
-                background-color: white
-                border: none
-                color: black
-                padding: 15px 32px
-                text-align: center
-                text-decoration: none
-                display: inline-block
-                font-size: 24px
-                margin: 4px 2px
-                cursor: pointer
-                width: 150px
+    
 </style>
