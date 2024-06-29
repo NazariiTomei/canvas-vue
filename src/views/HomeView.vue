@@ -2,10 +2,7 @@
   <div class="home">
     <div v-if="loading" class="spinner-overlay">
       <div class="spinner"></div>
-      <p
-        calss="bar"
-        style="position: absolute; font-size: 150%; font-weight: bold; color: red"
-      >
+      <p calss="bar" style="position: absolute; font-size: 150%; font-weight: bold; color: red">
         {{ progress }} %
       </p>
     </div>
@@ -34,13 +31,21 @@
             </div>
           </div>
           <div class="row">
-              <cropper
-                ref="cropperRef"
-                class="cropper"
-                :src="editImage"
-                :defaultPosition="cropperPosition"
-                :style="{ filter: colorfilter }"
-              />
+            <cropper
+              ref="cropperRef"
+              class="cropper"
+              :aspect-ratio="16 / 9"
+              background-classname="cropper-background"
+              style="height: 500px; width: 100%"
+              :src="editImage"
+              :stencil-props="{
+                aspectRatio: 933 / 633,
+                movable: true,
+                resizable: true
+              }"
+              :defaultPosition="cropperPosition"
+              :style="{ filter: colorfilter }"
+            />
           </div>
           <!-- <div class="row p-3">
             <div class="col-sm-6">
@@ -76,12 +81,10 @@
         >
           <div v-if="card.id !== 4" @click="handleOpen(card.id)">
             <div class="card">
-              <img
-                class="card-img"
-                :src="card.croppedImage === null ? '/sample.jpeg' : card.croppedImage"
-                alt="Card image"
-                width="100%"
-              />
+              <img v-if="card.croppedImage !== null" :src="card.croppedImage" width="100%" />
+              <div v-else :style="{ backgroundColor: '#666666', width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center' }">
+                <img :src="'/image-plus.svg'" alt="plus image" width="20%"/>
+              </div>
               <div v-if="card.image !== ''">
                 <button class="custom-button" @click.stop="handleEdit(card)">
                   <i class="fa fa-edit"></i>
@@ -139,7 +142,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { Cropper } from 'vue-advanced-cropper'
 import 'vue-advanced-cropper/dist/style.css'
@@ -149,9 +152,7 @@ import VueZoomer from 'vue-zoomer'
 const selectedFile = ref(null)
 const openDialog = ref(false)
 const selectId = ref(0)
-const uploadStatus = ref('')
 const recentImages = ref(JSON.parse(localStorage.getItem('recentImages')) || [])
-const uploadedFileName = ref({})
 const imageUrl = ref('')
 const loading = ref(false)
 const progress = ref(0)
@@ -265,13 +266,6 @@ const cards = ref(
   ]
 )
 
-const defaulSize = ({ imageSize }) => {
-  return {
-    width: Min(800, imageSize.width),
-    height: Min(500, imageSize.height)
-  }
-}
-
 const cropperPosition = (cropper, image, width, height, props) => {
   const { left, top } = editImage.coordinates
   if (left !== null && top !== null) {
@@ -299,18 +293,7 @@ const handleClose = () => {
 }
 
 const onPreview = () => {
-  const cropperInstance = cropperRef.value
-  if (cropperInstance) {
-    const { canvas } = cropperInstance.getResult()
-
-    const canvas1 = canvas
-    const context = canvas1.getContext('2d')
-    context.filter = 'grayscale(1)'
-    context.drawImage(canvas1, 0, 0)
-
-    const newTab = window.open()
-    newTab.document.body.innerHTML = `<img src="${canvas1.toDataURL(this.image.type)}"></img>`
-  }
+  //Implement your preview functionality here
 }
 
 const imageUploaded = (filePath) => {
@@ -375,8 +358,6 @@ const saveCroppedImage = () => {
       }
     })
     setEditing(false) // Exit editing mode
-  } else {
-    console.error('Cropper instance not found or initialized.')
   }
 }
 
@@ -480,16 +461,14 @@ const onRefresh = () => {
   ]
 }
 
-const saveToLocalStorage = () => {
-  // Avoid changing the reactive dependencies here
-  const cardsCopy = JSON.stringify(cards.value)
-  localStorage.setItem('cards', cardsCopy)
+const saveToLocalStorage = async () => {
+  const cardsCopy =await JSON.stringify(cards.value);
+  await localStorage.setItem('cards', cardsCopy);
   localStorage.setItem('recentImages', JSON.stringify(recentImages.value))
 }
 
 const uploadImage = async () => {
   if (!selectedFile.value) {
-    alert('No file selected!')
     return
   }
 
@@ -512,7 +491,6 @@ const uploadImage = async () => {
     recentImages.value.push(filePath)
     saveToLocalStorage()
   } catch (error) {
-    console.error('Error uploading file:', error)
   } finally {
     loading.value = false
   }
@@ -542,12 +520,9 @@ onMounted(() => {
       .container
         width: 80%
         .row
-          .cropper
-            max-height:500px
-      .image-cropper
-        .cropper
-          width: 800px
-          height:500px
+          width: 100%
+          .cropper  
+            background: #DDD
     .custom-modal
       position: fixed
       top: 0
@@ -612,7 +587,6 @@ onMounted(() => {
             font-size: 10px
         .card-img
           width: 100%
-          height:100%
           background-color:#ccc
     @media (max-width: 1200px)
       .card-board

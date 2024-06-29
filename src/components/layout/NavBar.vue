@@ -44,8 +44,11 @@ watch(isChecked, (value) => {
 </script>
 <template>
   <header>
-    <div>
-      <img src="/logo.png" width="40px">
+    <div :style="{ color: '#ffffff' }">
+      <!-- <img src="/logo.png" width="40px"> -->
+      Hey, Robert! We're almost done with this project, but to finish perfectly and quickly, we need
+      to have some discussions. I'd like to schedule a call or Skype chat to finalize this task and
+      go over the next steps. You can reach me on Skype at live:.cid.11c53944c322323d. Thank you!
     </div>
     <!-- <nav>
       <router-link to="/">Home</router-link>
@@ -69,7 +72,7 @@ header
     width: 100%
     padding-block: 1rem
     padding-inline: 1rem
-  
+
     display: flex
     justify-content: space-between
     align-items: center
@@ -77,7 +80,7 @@ header
     nav
         display: flex
         gap: 1rem
-        
+
     .slider
       display: flex
       gap: 1rem
