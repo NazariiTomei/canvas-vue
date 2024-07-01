@@ -81,9 +81,23 @@
         >
           <div v-if="card.id !== 4" @click="handleOpen(card.id)">
             <div class="card">
-              <img v-if="card.croppedImage !== null" :src="card.croppedImage" width="100%" />
-              <div v-else :style="{ backgroundColor: '#666666', width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center' }">
-                <img :src="'/image-plus.svg'" alt="plus image" width="20%"/>
+              <img
+                v-if="card.croppedImage !== null"
+                :src="card.croppedImage"
+                :style="{ objectFit: 'cover', width: '100%', height: '100%' }"
+              />
+              <div
+                v-else
+                :style="{
+                  backgroundColor: '#666666',
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }"
+              >
+                <img :src="'/image-plus.svg'" alt="plus image" width="20%" />
               </div>
               <div v-if="card.image !== ''">
                 <button class="custom-button" @click.stop="handleEdit(card)">
@@ -462,8 +476,8 @@ const onRefresh = () => {
 }
 
 const saveToLocalStorage = async () => {
-  const cardsCopy =await JSON.stringify(cards.value);
-  await localStorage.setItem('cards', cardsCopy);
+  const cardsCopy = await JSON.stringify(cards.value)
+  localStorage.setItem('cards', cardsCopy)
   localStorage.setItem('recentImages', JSON.stringify(recentImages.value))
 }
 
@@ -521,7 +535,7 @@ onMounted(() => {
         width: 80%
         .row
           width: 100%
-          .cropper  
+          .cropper
             background: #DDD
     .custom-modal
       position: fixed
