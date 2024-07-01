@@ -10,13 +10,13 @@
       <div v-if="editing" class="editing">
         <div class="container">
           <div class="row">
-            <div class="col-sm-2">
+            <div class="col-2">
               <button @click="rotateImage(90)" class="rotate-btn">
                 <i class="fa fa-rotate-right"></i>
               </button>
             </div>
-            <div class="col-sm-7"></div>
-            <div class="col-sm-3 form-group" style="width: 25%">
+            <div class="col-6"></div>
+            <div class="col-4 form-group" style="width: 32%">
               <select class="form-control" v-model="colorfilter" id="sel1">
                 <option value="">Original</option>
                 <option value="grayscale(100%)">Grayscale</option>
@@ -56,12 +56,12 @@
             </div>
           </div> -->
           <div class="row pt-3">
-            <div class="col-sm-6">
+            <div class="col-6">
               <button style="float: right" class="btn btn-danger" @click="saveCroppedImage">
                 Done
               </button>
             </div>
-            <div class="col-sm-6">
+            <div class="col-6">
               <button class="btn btn-secondary" @click="setEditing(false)">Cancel</button>
             </div>
           </div>
